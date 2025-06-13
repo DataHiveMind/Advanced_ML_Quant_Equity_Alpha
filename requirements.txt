@@ -13,7 +13,7 @@ xgboost>=1.7.0
 # Deep Learning Frameworks
 # TensorFlow and tf-quant-finance
 tensorflow>=2.10.0
-tf-quant-finance>=0.7.0
+tf-quant-finance
 
 # PyTorch
 torch>=1.13.0
