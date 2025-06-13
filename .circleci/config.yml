@@ -5,7 +5,7 @@ version: 2.1
 executors:
   python_executor:
     docker:
-      - image: cimg/python:3.9.13 # Use a specific Python version consistent with your project
+      - image: cimg/python:3.12.0 # Use a specific Python version consistent with your project
     resource_class: large # Use a larger resource class for ML/quant tasks
 
 # Define reusable commands
