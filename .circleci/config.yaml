@@ -1,0 +1,116 @@
+# .circleci/config.yml
+version: 2.1
+
+# Define reusable executors (environments)
+executors:
+  python_executor:
+    docker:
+      - image: cimg/python:3.9.13 # Use a specific Python version consistent with your project
+    resource_class: large # Use a larger resource class for ML/quant tasks
+
+# Define reusable commands
+commands:
+  install_dependencies:
+    description: "Install Python dependencies from requirements.txt"
+    steps:
+      - run:
+          name: Install Dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+            # Install quantlib-python with necessary system dependencies if not in base image
+            # sudo apt-get update && sudo apt-get install -y libboost-all-dev
+            # pip install quantlib-python
+
+  run_tests:
+    description: "Run unit and integration tests"
+    steps:
+      - run:
+          name: Run Tests
+          command: |
+            . venv/bin/activate
+            pytest src/
+
+  run_linter:
+    description: "Run code linters"
+    steps:
+      - run:
+          name: Run Flake8 Linter
+          command: |
+            . venv/bin/activate
+            flake8 src/ notebooks/ --max-line-length=120 --ignore=E402,W503 # Adjust ignores as needed
+      - run:
+          name: Run Black Formatter Check
+          command: |
+            . venv/bin/activate
+            black --check src/ notebooks/
+
+# Define jobs
+jobs:
+  build_and_test:
+    executor: python_executor
+    steps:
+      - checkout
+      - install_dependencies
+      - run_linter
+      - run_tests
+      - persist_to_workspace: # Cache dependencies for downstream jobs if needed
+          root: ~/project
+          paths:
+            - venv
+
+  # Optional: A job for running a quick backtest on a small dataset
+  # This can catch major regressions in strategy logic
+  run_smoke_backtest:
+    executor: python_executor
+    steps:
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: Run Smoke Backtest
+          command: |
+            . venv/bin/activate
+            # This would run a simplified version of your backtesting script
+            # Ensure your data/processed/ directory is accessible or use a small, committable sample
+            python src/backtesting/backtester.py --mode smoke_test --config config/smoke_test_config.yaml
+            # You might output a simple pass/fail metric or log
+      - store_artifacts:
+          path: results/backtest_reports/ # Store the backtest report as an artifact
+
+  # Optional: A job for training a small ML model to ensure data pipelines and model code are working
+  train_smoke_model:
+    executor: python_executor
+    steps:
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: Train Smoke ML Model
+          command: |
+            . venv/bin/activate
+            # Run a small training script using a tiny subset of data
+            python src/models/train.py --mode smoke_test --config config/smoke_train_config.yaml
+      - store_artifacts:
+          path: models/trained_models/ # Store the smoke model as an artifact
+
+# Define workflows
+workflows:
+  build_test_and_deploy:
+    jobs:
+      - build_and_test
+      - run_smoke_backtest:
+          requires:
+            - build_and_test # This job only runs after build_and_test succeeds
+      - train_smoke_model:
+          requires:
+            - build_and_test # This job also runs after build_and_test succeeds
+      # You could add a 'deploy' job here that pushes successful build to a deployment environment
+      # This would likely involve configuring remote access, e.g., AWS S3, Docker Hub, etc.
+      # - deploy_strategy:
+      #     requires:
+      #       - run_smoke_backtest
+      #       - train_smoke_model
+      #     filters:
+      #       branches:
+      #         only: main # Only deploy from the main branch

@@ -1,0 +1,90 @@
+# config/backtest_config.yaml
+
+# Global Backtesting Configuration
+global_backtest:
+  initial_capital: 1_000_000.0 # Starting capital for the backtest in USD
+  currency: "USD"
+  # Define the full backtest period for deterministic run
+  backtest_start_date: "2023-01-01"
+  backtest_end_date: "2024-12-31" # Up to the end of 2024
+  data_frequency: "daily"        # Options: daily, hourly, minutely (requires granular data)
+  warmup_period_days: 60         # Period for calculating initial indicators/features
+
+# Data Paths for Backtesting Input
+backtest_data_paths:
+  market_data_path: "data/processed/market_data_cleaned.parquet" # OHLCV, adjusted prices
+  features_data_path: "data/processed/ml_features_for_backtest.parquet" # ML-generated features
+  predictions_data_path: "results/ml_metrics/model_predictions_backtest_period.csv" # ML model predictions
+  index_constituents_path: "data/processed/index_constituents.csv" # For index-related strategies
+  corporate_actions_path: "data/processed/corporate_actions.csv" # For corporate action handling
+
+# Trade Execution Parameters
+execution:
+  transaction_cost_bps: 2.0      # Base transaction cost in basis points (e.g., 2 bps = 0.02%)
+  slippage_bps_per_share: 0.5    # Slippage per share in basis points of price
+  # Market impact model (simplified)
+  market_impact:
+    enable: True
+    model_type: "linear"         # Options: linear, square_root
+    coefficient: 0.0001          # Impact coefficient for the chosen model
+    # Impact = coefficient * (order_size / avg_daily_volume)
+    # Price_adjusted = current_price * (1 +/- Impact)
+  min_trade_size_usd: 1000.0     # Minimum trade value in USD
+  max_trade_size_percent_adv: 0.05 # Max order size as % of Average Daily Volume (ADV)
+
+# Portfolio Construction Rules
+portfolio_construction:
+  strategy_type: "long_short_equity" # Options: long_only, long_short_equity, market_neutral
+  rebalance_frequency: "monthly"     # Options: daily, weekly, monthly, quarterly
+  rebalance_day_of_month: 25         # E.g., rebalance on the 25th of the month
+  max_positions: 50                  # Maximum number of concurrent positions
+  # Position sizing based on ML prediction score
+  position_sizing_method: "predictive_score_weighted" # Options: equal_weight, inverse_volatility, predictive_score_weighted
+  max_position_weight: 0.05          # Maximum weight for a single stock in the portfolio
+  # For 'predictive_score_weighted':
+  min_prediction_score_threshold: 0.005 # Only trade if predicted return is above this threshold
+  max_prediction_score_threshold: 0.02  # Max score to cap weighting
+
+# Risk Management Parameters
+risk_management:
+  enable: True
+  stop_loss_percent: 0.03          # Individual position stop-loss (e.g., 3% loss)
+  take_profit_percent: 0.10          # Individual position take-profit (e.g., 10% gain)
+  max_daily_drawdown_percent: 0.05   # Portfolio-level daily stop (e.g., if portfolio drops 5% in a day)
+  max_total_drawdown_percent: 0.15   # Portfolio-level total drawdown limit
+  max_leverage: 1.5                  # Maximum allowable leverage for the portfolio
+  volatility_target_annualized: 0.15 # Target annualized volatility for the portfolio (if using risk parity/vol target)
+
+# Monte Carlo Backtesting Configuration
+monte_carlo:
+  enable: True
+  num_simulations: 1000              # Number of Monte Carlo paths to run
+  # Methods for generating alternative price paths
+  path_generation_method: "historical_bootstrap" # Options: historical_bootstrap, garch_simulation, ml_generative_model
+  # Parameters specific to path generation method
+  historical_bootstrap:
+    block_size: 20                   # For block bootstrapping (e.g., 20 trading days)
+    resample_features_too: True      # Whether to resample features along with prices
+  garch_simulation:
+    mean_reversion: 0.001
+    long_run_variance: 0.01
+    volatility_of_volatility: 0.1
+  # For ML_generative_model, specify model path
+  ml_generative_model:
+    model_path: "models/trained_models/gan_market_simulator.pt" # Example: PyTorch GAN model
+    num_steps_to_generate: 252       # Number of trading days to generate per path
+  # How to handle transaction costs/slippage in MC:
+  mc_execution_variance_bps: 0.5   # Add random noise (up to +/- 0.5 bps) to execution costs per MC path
+
+# Output and Reporting Configuration
+output:
+  results_dir: "results/backtest_reports"
+  equity_curve_filename: "equity_curve.csv"
+  positions_log_filename: "positions_log.csv"
+  trades_log_filename: "trades_log.csv"
+  metrics_summary_filename: "metrics_summary.json"
+  generate_html_report: True
+  report_template: "templates/backtest_report_template.html" # Path to a Jinja2 template
+  # Monte Carlo specific outputs
+  mc_equity_curves_filename: "mc_equity_curves.csv"
+  mc_metrics_summary_filename: "mc_metrics_summary.json"

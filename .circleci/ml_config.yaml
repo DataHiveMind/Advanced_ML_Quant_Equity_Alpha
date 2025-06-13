@@ -1,0 +1,144 @@
+# config/ml_config.yaml
+
+# Global ML Configuration
+global_ml:
+  random_state: 42                       # Seed for reproducibility across all ML tasks
+  target_column: "future_returns"        # Name of the column representing the target variable
+  feature_set_version: "v1.0"            # Identifier for the set of features used
+  output_dir: "models/trained_models"    # Base directory to save trained models
+  results_dir: "results/ml_metrics"      # Directory to save ML-specific evaluation metrics
+
+# Data Configuration for ML
+data_config:
+  processed_features_path: "data/processed/features_daily_v1.0.parquet"
+  target_labels_path: "data/processed/target_labels_v1.0.csv"
+  # Define specific date ranges for training, validation, testing to avoid look-ahead bias
+  train_start_date: "2010-01-01"
+  train_end_date: "2020-12-31"
+  val_start_date: "2021-01-01"
+  val_end_date: "2022-12-31"
+  test_start_date: "2023-01-01"
+  test_end_date: "2024-12-31" # Latest data for final unseen evaluation
+
+# Feature Engineering / Selection Configuration
+feature_engineering:
+  selected_features:                     # List of features to be used by models
+    - "momentum_1m"
+    - "volatility_3m"
+    - "liquidity_ratio"
+    - "earning_surprise_score"
+    - "news_sentiment_avg"
+    - "tfqf_implied_vol_diff"            # Example from tf-quant-finance
+    # Add other features
+  feature_scaling_method: "StandardScaler" # Options: StandardScaler, MinMaxScaler, None
+  # Optional: PCA, feature importance-based selection
+  feature_selection:
+    method: "tree_importance"            # Options: None, tree_importance, correlation_filter
+    threshold: 0.01                      # For tree_importance, min importance to keep
+
+# Cross-Validation Configuration
+cross_validation:
+  method: "TimeSeriesSplit"              # Options: TimeSeriesSplit, PurgedKFold (for more advanced)
+  n_splits: 5                            # Number of splits for CV
+  gap_period: "30D"                      # Time gap between train and test sets to prevent leakage
+
+# Model-Specific Configurations
+
+# LightGBM / XGBoost Configuration (Example for a traditional gradient boosting model)
+lightgbm_model:
+  model_name: "LightGBM_Alpha_Predictor"
+  model_type: "lgb.LGBMRegressor"        # Or lgb.LGBMClassifier if classification
+  params:
+    objective: "regression_l1"           # Options: regression_l1 (MAE), regression_l2 (MSE), binary, multiclass
+    metric: "rmse"                       # Evaluation metric
+    n_estimators: 1000
+    learning_rate: 0.05
+    num_leaves: 31
+    max_depth: -1
+    min_child_samples: 20
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_alpha: 0.1                       # L1 regularization
+    reg_lambda: 0.1                      # L2 regularization
+    n_jobs: -1                           # Use all available cores
+  early_stopping_rounds: 50              # Stop if validation metric doesn't improve for this many rounds
+
+# TensorFlow Model Configuration (for Deep Learning)
+tensorflow_model:
+  model_name: "TF_DNN_Equity_Predictor"
+  model_type: "keras_sequential"         # Or custom_model_class
+  params:
+    input_dim: null                      # Will be inferred from feature count
+    layers:
+      - type: "Dense"
+        units: 128
+        activation: "relu"
+        dropout_rate: 0.2
+      - type: "Dense"
+        units: 64
+        activation: "relu"
+        dropout_rate: 0.2
+      - type: "Dense"
+        units: 1                         # Output layer for regression
+        activation: "linear"
+    optimizer: "Adam"
+    learning_rate: 0.001
+    loss: "mean_squared_error"           # Or 'mean_absolute_error', custom_loss_function
+    metrics: ["mean_absolute_error", "root_mean_squared_error"]
+  training:
+    epochs: 100
+    batch_size: 64
+    validation_split: 0.15               # % of training data to use for validation
+    callbacks:
+      - type: "EarlyStopping"
+        monitor: "val_loss"
+        patience: 10
+        mode: "min"
+      - type: "ModelCheckpoint"
+        filepath: "models/trained_models/tf_best_model.h5"
+        monitor: "val_loss"
+        save_best_only: True
+
+# PyTorch Model Configuration (for Deep Learning)
+pytorch_model:
+  model_name: "PyTorch_LSTM_Time_Series_Predictor"
+  model_type: "custom_lstm_model"        # Reference to a class in src/models/pytorch_models.py
+  params:
+    input_size: null                     # Will be inferred from feature count
+    hidden_size: 128
+    num_layers: 2
+    dropout: 0.3
+    output_size: 1
+  training:
+    epochs: 80
+    batch_size: 32
+    learning_rate: 0.0005
+    loss_function: "torch.nn.MSELoss"    # Or L1Loss, custom_loss
+    optimizer: "torch.optim.Adam"
+    early_stopping_patience: 15          # Early stopping for PyTorch
+    model_save_path: "models/trained_models/pytorch_best_model.pt"
+
+# tf-quant-finance specific parameters (if directly used for model training or feature generation)
+tfqf_config:
+  # Example: parameters for implied volatility calculation or stochastic process simulation
+  black_scholes_params:
+    risk_free_rate: 0.02
+    dividend_yield: 0.0
+  heston_model_params:
+    kappa: 2.0
+    theta: 0.04
+    rho: -0.7
+    vol_of_vol: 0.1
+
+# Hyperparameter Tuning Configuration (e.g., for Optuna or GridSearchCV)
+hpt_config:
+  enable: False
+  search_method: "random_search"         # Options: grid_search, random_search, bayesian_optimization (Optuna)
+  n_iterations: 50                       # For random_search/bayesian_optimization
+  # Define parameter space for a chosen model (e.g., LightGBM)
+  param_space_lgbm:
+    learning_rate: [0.01, 0.05, 0.1]
+    num_leaves: [15, 31, 63]
+    max_depth: [5, 10, -1]
+    subsample: [0.6, 0.8, 1.0]
+  # Add param_space for TF or PyTorch if doing neural architecture search
