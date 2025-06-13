@@ -1,0 +1,53 @@
+# Core Data Science and Machine Learning Libraries
+pandas>=2.0.0
+numpy>=1.25.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Gradient Boosting Models
+lightgbm>=3.3.5
+xgboost>=1.7.0
+
+# Deep Learning Frameworks
+# TensorFlow and tf-quant-finance
+tensorflow>=2.10.0
+tf-quant-finance>=0.7.0
+
+# PyTorch
+torch>=1.13.0
+torchvision>=0.14.0
+# For GPU support, you might need to install specific versions of torch and torchvision
+# that match your CUDA toolkit version. Example for CUDA 11.7:
+# torch==1.13.0+cu117
+# torchvision==0.14.0+cu117
+# (You would typically uncomment these and remove the CPU-only versions above if using GPU)
+
+# Quantitative Finance Libraries
+quantlib-python>=1.30.0
+
+# Backtesting Framework
+backtrader>=1.9.78 # A popular, relatively easy-to-use backtesting library
+
+# Data Handling and Configuration
+pyarrow>=10.0.0 # For efficient Parquet file I/O
+omegaconf>=2.3.0 # For structured configuration management (e.g., loading YAMLs)
+PyYAML>=6.0 # Often a dependency of OmegaConf, good to specify explicitly
+
+# Testing and Code Quality (for CI/CD with CircleCI)
+pytest>=7.2.0
+flake8>=6.0.0 # Python code linter
+black>=23.1.0 # Opinionated code formatter (use --check in CI/CD)
+
+# Jupyter/Colab Notebooks (for interactive development)
+jupyterlab>=3.6.0
+ipywidgets>=8.0.0 # Useful for interactive elements in notebooks
+
+# Data Acquisition (Proxy)
+yfinance>=0.2.36 # For fetching historical market data (e.g., stock prices)
+
+# Optional: If you decide to implement the 'src/app/' directory for an API
+# fastapi>=0.95.0
+# uvicorn[standard]>=0.21.0
+# flask>=2.2.0
