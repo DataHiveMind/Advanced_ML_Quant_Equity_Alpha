@@ -3,7 +3,9 @@
 For any inquiries, collaborations, or discussions regarding this project, please feel free to reach out:
 
 Your Name: Kenneth LeGare
+
 Email: kennethlegare5@gmail.com
+
 LinkedIn: www.linkedin.com/in/kenneth-legare
 
 ## Project Overview:
